@@ -7,6 +7,9 @@ const limiter = rateLimit({
   legacyHeaders: false,     // Disable old headers
   message: {
     error: "Too many requests from this IP, please try again later."
+  },
+    keyGenerator: (req, res) => {
+    return req.ip || req.connection.remoteAddress;
   }
 });
 
