@@ -64,12 +64,36 @@ const getAllLinks = async (req, res) => {
 // Get single link stats
 const getLink = async (req, res) => {
   const { code } = req.params;
+
+  if (!/^[A-Za-z0-9]{6,8}$/.test(code)) {
+    return res.status(404).send("Not found");
+  }
+
   try {
     const result = await pool.query("SELECT * FROM links WHERE code = $1", [code]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Not found" });
     }
     res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+};
+
+// Check code validity
+const validCode = async (req, res) => {
+  const { code } = req.params;
+
+  if (!/^[A-Za-z0-9]{6,8}$/.test(code)) {
+    return res.status(404).send("Not found");
+  }
+
+  try {
+    const result = await pool.query("SELECT * FROM links WHERE code = $1", [code]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database error" });
   }
@@ -98,7 +122,7 @@ const redirectLink = async (req, res) => {
   }
 
   try {
-    const result = await pool.query(
+    const { rows } = await pool.query(
       `UPDATE links 
        SET clicks = clicks + 1, last_clicked = NOW() 
        WHERE code = $1 
@@ -106,11 +130,11 @@ const redirectLink = async (req, res) => {
       [code]
     );
 
-    if (result.rowCount === 0) {
+    if (rows.length === 0) {
       return res.status(404).send("Not found");
     }
 
-    res.redirect(302, result.rows[0].url);
+    res.redirect(302, rows[0].url);
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
@@ -124,4 +148,5 @@ module.exports = {
   getLink,
   deleteLink,
   redirectLink,
+  validCode
 };
